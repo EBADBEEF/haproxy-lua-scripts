@@ -177,16 +177,9 @@ local function socks5_connect(txn)
     end
 
     -- send success back to client
-    if family == "inet" then
-      sendbuf(txn, '\x05\x00\x00\x01'
-        .. '\x00\x00\x00\x00'
-        .. '\x00\x00')
-    elseif family == "inet6" then
-        sendbuf(txn, '\x05\x00\x00\x04'
-          .. '\x00\x00\x00\x00\x00\x00\x00\x00'
-          .. '\x00\x00\x00\x00\x00\x00\x00\x00'
-          .. '\x00\x00')
-    end
+    sendbuf(txn, '\x05\x00\x00\x01'
+      .. '\x00\x00\x00\x00'
+      .. '\x00\x00')
 
     -- tell haproxy where to go
     dbg(txn, string.format("ready dst=%s, port=%s", addr, port))
