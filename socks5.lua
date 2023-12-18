@@ -134,7 +134,7 @@ local function decode_address(txn, atyp)
     port = port:bytes_to_uint16()
 
     notice(txn, string.format("%s:%s connect to %s:%s", 
-        txn.f:src(), txn.f:src_port(), addr, port))
+        txn.sf:src(), txn.sf:src_port(), addr, port))
 
     -- resolve hostname
     if atyp == 0x03 then
