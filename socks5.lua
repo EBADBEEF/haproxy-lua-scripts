@@ -6,7 +6,7 @@ local argv = table.pack(...)
 -- some convenience logging functions
 local function log(txn, lvl, ...)
     txn:log(lvl, "socks5: " .. string.format(...))
-    print("socks5: " .. string.format(...))
+    --print("socks5: " .. string.format(...))
 end
 local function dbg(txn, ...) log(txn, core.debug, ...) end
 local function info(txn, ...) log(txn, core.info, ...) end
