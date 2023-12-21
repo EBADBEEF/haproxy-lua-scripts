@@ -25,7 +25,6 @@ local function print_login_html(post_url)
   return string.format([[
   <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=">
   <form method="POST" action="%s">
-  <input type="text" name="user" value="cow" />
   <input type="password" name="password" value="" />
   <input type="submit" name="login" value="Login" />
   </form>
@@ -48,6 +47,7 @@ end
 
 local function validate_login_form(http, params)
   local cookie_name = http:get_var("txn.cookie_name")
+  local cookie_domain = http:get_var("txn.cookie_domain")
   local password = http:get_var("txn.password")
   if cookie_name == nil then
     err("could not find txn.cookie_name")
@@ -59,46 +59,53 @@ local function validate_login_form(http, params)
   end
   if params["password"] == password then
     local uuid = http.sf:uuid(4)
-    local domain = http:get_var("txn.cookie_domain") or ""
-    dbg("found match, set-cookie %s=%s %s",cookie_name, uuid, domain)
-    -- todo: timestamp, client info, anything that if it changes client needs to login
-    sessions[uuid] = true
-    http:add_header("set-cookie", string.format('%s=%s',cookie_name, uuid))
+    local cookie_string = string.format('%s=%s', cookie_name, uuid)
+    -- save session
+    sessions[uuid] = true -- todo: timestamp, client info, anything that if it changes client needs to login
+    -- send cookie
+    if cookie_domain ~= nil then
+      cookie_string = cookie_string .. string.format("; Domain=%s", cookie_domain)
+    end
+    dbg("login post good, set-cookie %s", cookie_string)
+    http:add_header("set-cookie", cookie_string)
     return true
   end
+  dbg("login bad")
   return false
 end
 
 local function auth_login(http)
-  local post_url = http:get_var("txn.login_url") or http:get_var("txn.login_path")
+  local post_url = http:get_var("txn.login_location")
   if post_url == nil then
-    err("auth_login could not find txn.login_url or txn.login_path")
+    err("auth_login could not find txn.login_location")
     return act.ERROR
   end
 
   dbg("in auth_login http.path=%s", http.path)
 
+  -- We either wanted to login or failed to authenticate and must login. Note
+  -- we could have been sent here by an unauthenticated post to a different
+  -- location, so it is important to check the destination to see how we got
+  -- here.
   local expected_login = false
   local status = 401
-
-  -- either we wanted to login or we failed to authenticate
   if (http.headers["host"][0] == post_url) or (string.find(http.path, "^"..post_url)) then
     expected_login = true
     status = 200
   end
 
-  dbg("in auth_login expected_login = %s (status %d)", expected_login, status)
-
   if http.method == "POST" and expected_login then
-    -- TODO: read from params if they were sent
-    local location = "/"
     local data = http:receive()
-    local params = parse_login_form(http, data)
-    if validate_login_form(http, params) == true then
+    local form = parse_login_form(http, data)
+    if validate_login_form(http, form) == true then
+      -- TODO: read from query params if they were sent
+      local location = "/"
       http:set_status(302)
       http:add_header("location", location)
       http:start_response()
       return act.DONE
+    else
+      dbg("bad login post")
     end
     -- fall through
   end
@@ -129,12 +136,12 @@ local function auth_request(txn)
     uuid = txn.sf:req_hdr(cookie_name)
   end
 
-  dbg(string.format("in auth_request, uuid=%s", uuid))
-
   -- check if session token is in our sessions table
   if uuid ~= nil and sessions[uuid] ~= nil then
-    dbg("found uuid")
+    dbg(string.format("in auth_request, found uuid=%s", uuid))
     txn:set_var('txn.allow', true)
+  else
+    dbg(string.format("in auth_request, no session for uuid=%s", uuid))
   end
 
   return act.CONTINUE
