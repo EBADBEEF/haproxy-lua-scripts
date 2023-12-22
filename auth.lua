@@ -25,33 +25,53 @@ end
 
 local function login_form(txn, setcookie)
   body = [[
+
+<html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body {
   background: #505170;
 }
-input {
-  width: 60%;
-  margin-top: 2em;
-  margin-left: 20%;
-  margin-right: 20%;
-  padding: 0.2em;
-  font-size: 24px;
-  font-size: calc(2.4*100vw/80);
+.moo {
+  margin-left: 5%;
+  margin-right: 5%;
+  width: 90%;
+  font-size: calc(5.5vw);
 }
-.rounded-button {
-  border-radius: 0.3em;
-  background: rgb(86,86,98);
-  background: linear-gradient(5deg, rgba(86,86,98,1) 0%, rgba(125,122,139,1) 55%, rgba(158,156,169,1) 100%);
-}
-.input-button {
+.password {
   background: rgb(116,116,148);
+  margin-top: 10%;
+  padding: 0.2em;
+}
+.login {
+  background: rgb(86,86,98);
+  border-radius: 0.2em;
+  margin-top: 1em;
+  background: linear-gradient(5deg, rgba(86,86,98,1) 0%, rgba(125,122,139,1) 55%, rgba(158,156,169,1) 100%);
+  padding: 0.2em;
+}
+@media (min-width: 800px) {
+  input {
+    margin-left: 30%;
+    margin-right: 30%;
+    width: 40%;
+    font-size: calc(2.5vw);
+  }
+  .password {
+    margin-top: 2%;
+  }
 }
 </style>
+<script>
+function show(e,b) { e.type = b ? 'text' : 'password'; }
+</script>
 <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=">
-<form method="POST">
-<input class="input-button" type="normal" name="password" value="" />
-<input class="rounded-button" type="submit" name="login" value="login" />
+<form method="POST" class="moo">
+<input class="password" type="normal" name="password" id="password" onfocus="show(this,true)" onblur="show(this,false)" />
+<input class="login" type="submit" name="login" value="login" />
 </form>
+</html>
   ]]
   return txn:reply{
     status = 401,
