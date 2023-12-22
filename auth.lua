@@ -25,12 +25,33 @@ end
 
 local function login_form(txn, setcookie)
   body = [[
-  <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=">
-  <form method="POST">
-  <input type="hidden" name="user" value="moo" />
-  <input type="password" name="password" value="" />
-  <input type="submit" name="login" value="Login" />
-  </form>
+<style>
+body {
+  background: #505170;
+}
+input {
+  width: 60%;
+  margin-top: 2em;
+  margin-left: 20%;
+  margin-right: 20%;
+  padding: 0.2em;
+  font-size: 24px;
+  font-size: calc(2.4*100vw/80);
+}
+.rounded-button {
+  border-radius: 0.3em;
+  background: rgb(86,86,98);
+  background: linear-gradient(5deg, rgba(86,86,98,1) 0%, rgba(125,122,139,1) 55%, rgba(158,156,169,1) 100%);
+}
+.input-button {
+  background: rgb(116,116,148);
+}
+</style>
+<link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=">
+<form method="POST">
+<input class="input-button" type="normal" name="password" value="" />
+<input class="rounded-button" type="submit" name="login" value="login" />
+</form>
   ]]
   return txn:reply{
     status = 401,
