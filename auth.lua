@@ -100,6 +100,10 @@ local function auth_request_inline(txn)
     -- reading the body of a request depends on 'http-request wait-for-body ...
     -- if METH_POST' or 'option http-buffer-request'
     local form = form_to_table(txn, txn.sf:req_body())
+    if form["password"] ~= nil then
+      -- slow down password check to prevent brute forcing
+      core.sleep(1)
+    end
     if form["password"] == password then
       local uuid = txn.sf:uuid(4)
       sessions[uuid] = true -- todo: timestamp, client info, anything that if it changes client needs to login
@@ -116,6 +120,4 @@ local function auth_request_inline(txn)
 end
 
 core.register_action("auth", { 'http-req' }, auth_request_inline, 0)
-if core.thread == 1 then
 core.log(core.alert, string.format("auth.lua: loaded"))
-end
