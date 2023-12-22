@@ -26,7 +26,8 @@ end
 local function login_form(txn, setcookie)
   body = [[
   <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA=">
-  <form method="POST" enctype="custom/login" >
+  <form method="POST">
+  <input type="hidden" name="user" value="moo" />
   <input type="password" name="password" value="" />
   <input type="submit" name="login" value="Login" />
   </form>
