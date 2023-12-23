@@ -1,5 +1,3 @@
-local socket = require("socket")
-
 -- argv can be used to pass in values from lua-load
 local argv = table.pack(...)
 
@@ -127,23 +125,13 @@ local function decode_address(txn, atyp)
         addr = addr:bytes_to_ip4()
     elseif atyp == 0x04 then
         addr = addr:bytes_to_ip6()
+    elseif atyp == 0x03 then
+        txn:set_var("req.resolvedns", true)
     end
     port = port:bytes_to_uint16()
 
     notice(txn, "%s:%s connect to %s:%s",
         txn.sf:src(), txn.sf:src_port(), addr, port)
-
-    -- resolve hostname
-    if atyp == 0x03 then
-        local ai = socket.dns.getaddrinfo(addr)
-        if ai == nil then
-            dbg(txn, "could not resolve host: %s", addr)
-            -- TODO: return SOCKS error msg
-            return nil
-        end
-        dbg(txn, "resolved host %s to %s", addr, ai[1].addr)
-        addr = ai[1].addr
-    end
 
     return addr, port
 end
@@ -177,9 +165,8 @@ local function socks5_connect(txn)
       .. '\x00\x00')
 
     -- tell haproxy where to go
-    dbg(txn, "ready dst=%s, port=%s", addr, port)
-    txn:set_var('txn.dst', addr)
-    txn:set_var('txn.port', port)
+    txn:set_var('req.dst', addr)
+    txn:set_var('req.port', port)
 
     -- let the connection flow in haproxy now
     return act.CONTINUE
