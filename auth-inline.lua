@@ -65,7 +65,7 @@ local function bake_cookie(name, value, domain)
   return str
 end
 
-local function loglogin(txn, success)
+local function log_login(txn, success)
   notice(txn, "%s from src=%s path=%s"
     ,success and "success" or "failure"
     ,txn.sf:src()
@@ -105,10 +105,10 @@ local function auth_request_inline(txn)
         local uuid = txn.sf:uuid(4)
         sessions[uuid] = true -- todo: timestamp, client info, anything that if it changes client needs to login
         setcookie = bake_cookie(cookie_name, uuid, cookie_domain)
-        loglogin(txn, true)
+        log_login(txn, true)
         txn:done(successful_login(txn, setcookie))
       else
-        loglogin(txn, false)
+        log_login(txn, false)
       end
     end
   end
