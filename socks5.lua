@@ -183,8 +183,13 @@ local function socks5_connect(txn)
         return act.DENY
     end
 
-    notice(txn, "%s:%s %s connect to %s:%s",
-        txn.sf:src(), txn.sf:src_port(), username, addr, port)
+    notice(txn, "%s:%s%s connect to %s:%s",
+        txn.sf:src(),
+        txn.sf:src_port(),
+        username and (' "' .. username .. '"') or "",
+        addr,
+        port
+    )
 
     -- send success back to client
     sendbuf(txn, '\x05\x00\x00\x01'
