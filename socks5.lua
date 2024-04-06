@@ -44,34 +44,63 @@ local function sendbuf(txn, data)
   txn.res:send(data)
 end
 
-local function is_socks5_with_authmethod(txn, method)
+local function parse_userpass(txn)
+    local version = getbuf(txn, 1)
+    if version == nil or version:byte(1) ~= 0x01 then
+        return nil, "username version mismatch"
+    end
+    local username_len = getbuf(txn, 1)
+    if username_len == nil then
+        return nil, "failed to read username length"
+    end
+    local username = getbuf(txn, username_len:byte(1))
+    if username == nil then
+        return nil, "failed to read username"
+    end
+    local password_len = getbuf(txn, 1)
+    if password_len == nil then
+        return nil, "failed to read password length"
+    end
+    local password = getbuf(txn, password_len:byte(1))
+    return username, password
+end
+
+local function is_socks5(txn)
     local data = getbuf(txn, 2)
     if data == nil then
-        return false
+        return false, "no initial bytes"
     end
     -- only support socks v5 for now
     if data:byte(1) ~= 0x05 then
-        dbg(txn, "socks version not 5")
-        return false
+        return false, "socks version not 5"
     end
-    -- find our authmethod
+    -- find supported authmethod
     local nmethods = data:byte(2)
     local data = getbuf(txn, nmethods)
     if data == nil then
-        return false
+        return false, "failed to read nmethods"
     end
-    local found = false
+    -- prefer username/password
     for idx = 1, nmethods do
-        if data:byte(idx) == method then
-            found = true
-            break
+        if data:byte(idx) == 0x02 then
+            sendbuf(txn, '\x05\x02')
+            local username, password = parse_userpass(txn)
+            if username == nil then
+                return false, password
+            end
+            -- accept any password
+            sendbuf(txn, '\x01\x00')
+            return true, username
         end
     end
-    if not found then
-        dbg(txn, "did not find auth method 0x%02x", method)
-        return false
+    -- ...but also support null auth
+    for idx = 1, nmethods do
+        if data:byte(idx) == 0x00 then
+            sendbuf(txn, '\x05\x00')
+            return true, nil
+        end
     end
-    return true
+    return false, "could not find supported auth method"
 end
 
 local function get_connect_address_type(txn)
@@ -130,20 +159,15 @@ local function decode_address(txn, atyp)
     end
     port = port:bytes_to_uint16()
 
-    notice(txn, "%s:%s connect to %s:%s",
-        txn.sf:src(), txn.sf:src_port(), addr, port)
-
     return addr, port
 end
 
 local function socks5_connect(txn)
-    -- only support "no auth required" auth method
-    if not is_socks5_with_authmethod(txn, 0x00) then
+    local ok, username = is_socks5(txn)
+    if not ok then
+        dbg(txn, username)
         return act.DENY
     end
-
-    -- accept socks v5
-    sendbuf(txn, '\x05\x00')
 
     -- tcp connect request (0x01) with address type
     atyp = get_connect_address_type(txn)
@@ -158,6 +182,9 @@ local function socks5_connect(txn)
     if addr == nil or port == nil then
         return act.DENY
     end
+
+    notice(txn, "%s:%s %s connect to %s:%s",
+        txn.sf:src(), txn.sf:src_port(), username, addr, port)
 
     -- send success back to client
     sendbuf(txn, '\x05\x00\x00\x01'
