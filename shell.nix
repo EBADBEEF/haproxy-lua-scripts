@@ -1,8 +1,11 @@
 { pkgs ? import <nixpkgs> {}, ... }:
 let
+  # Originally I used luasocket to do dns lookups. Now the standard haproxy
+  # with lua support works. But here is an example of running haproxy with a
+  # custom lua package.
   lua = (pkgs.lua5_3.withPackages (ps: with ps; [ luasocket ]));
 in
-pkgs.stdenv.mkDerivation {
+pkgs.mkShell {
   name = "haproxy+lua53";
   buildInputs = [
     pkgs.haproxy
